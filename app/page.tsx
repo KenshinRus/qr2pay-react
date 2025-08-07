@@ -28,7 +28,7 @@ export default function Home() {
       </ul>
       <div>
         <h3 className="text-lg">T & C</h3>
-        <p>This service doesn't store any user data anywhere and provides an instant URL with user data encrypted in it.<br />
+        <p className="text-xs text-muted-foreground">This service doesn't store any user data anywhere and provides an instant URL with user data encrypted in it.<br />
         This service is provided as free and on as is basis.</p>
       </div>
     </div>

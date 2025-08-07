@@ -3,11 +3,8 @@
 
 import { redirect } from 'next/navigation';
 import crypto from 'crypto';
-import fs from 'fs';
 import { UserData } from './types';
-
-const privateKey = fs.readFileSync('./res/key.pem', 'utf8');
-const publicKey = fs.readFileSync('./res/public.key', 'utf8');
+import { getPrivateKey, getPublicKey } from './keyManager';
 
 export async function generateAction(formData: FormData) {
     console.log('Generating action with form data:', formData);
@@ -22,6 +19,7 @@ export async function generateAction(formData: FormData) {
     pin,
   } as UserData;
   console.log('Data to encrypt:', data);
+  const privateKey = await getPrivateKey();
   const encrypted = crypto.privateEncrypt(privateKey, Buffer.from(JSON.stringify(data)));
   const base64 = encrypted.toString('base64');
   redirect(`/share?data=${encodeURIComponent(base64)}`);
@@ -30,6 +28,7 @@ export async function generateAction(formData: FormData) {
 export async function decrypt(data64: string) : Promise<UserData> {
   try {
     const data = Buffer.from(data64, 'base64');
+    const publicKey = await getPublicKey();
     const decrypted = crypto.publicDecrypt(publicKey, data);
     console.log('Decrypted data:', decrypted.toString());
     return JSON.parse(decrypted.toString()) as UserData;
