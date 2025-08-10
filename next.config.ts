@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig = {
+  // Enable standalone output so the runtime can use .next/standalone without needing the Next CLI
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
