@@ -1,7 +1,7 @@
 // components/ClientView.tsx ('use client')
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { decrypt } from '@/lib/actions';
 import { UserData } from '@/lib/types';
@@ -10,13 +10,13 @@ import { showCopyToast } from '@/lib/utils';
 export default function ClientView({ data64 }: { data64: string }) {
   const [details, setDetails] = useState<UserData | null>(null);
 
-  const decryptUrlData = async () => {
+  const decryptUrlData = useCallback(async () => {
     setDetails(await decrypt(data64));
-  };
+  }, [data64]);
 
   useEffect(() => {
     decryptUrlData();
-  }, []);
+  }, [decryptUrlData]);
 
   return (
     <>

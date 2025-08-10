@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.11.1",
+    "@azure/keyvault-keys": "^4.10.0",
     "@azure/keyvault-secrets": "^4.10.0",
     "@fnzc/nz-bank-account-validator": "^1.0.3",
     "@radix-ui/react-dialog": "^1.1.14",

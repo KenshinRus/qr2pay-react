@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu} from 'lucide-react';
 import { useState } from 'react';
 import { 
   Dialog,

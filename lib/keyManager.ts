@@ -1,66 +1,47 @@
-// lib/keyManager.ts
-import fs from 'fs';
 import { DefaultAzureCredential } from '@azure/identity';
 import { SecretClient } from '@azure/keyvault-secrets';
 
-// Check if we're in production environment
-const isProduction = process.env.NODE_ENV === 'production';
+const vaultName = process.env.AZURE_KEY_VAULT_NAME;
+const secretName = process.env.SYMMETRIC_KEY_SECRET_NAME;
 
-// Azure Key Vault configuration
-const keyVaultName = process.env.AZURE_KEY_VAULT_NAME || '';
-const keyVaultUrl = `https://${keyVaultName}.vault.azure.net`;
-const privateKeySecretName = process.env.PRIVATE_KEY_SECRET_NAME || 'private-key';
-const publicKeySecretName = process.env.PUBLIC_KEY_SECRET_NAME || 'public-key';
-
-// File paths for local development
-const privateKeyPath = './res/key.pem';
-const publicKeyPath = './res/public.key';
+let symmetricKey: Buffer | null = null;
 
 /**
- * Gets private key from either Azure Key Vault in production or from local file in development
+ * Retrieves the symmetric encryption key.
+ * In production, it fetches from Azure Key Vault.
+ * In development, it reads from the SYMMETRIC_KEY environment variable.
+ * The key is cached in memory after the first retrieval.
+ * @returns A Buffer containing the 256-bit symmetric key.
  */
-export async function getPrivateKey(): Promise<string> {
-  if (isProduction) {
-    return await getKeyFromKeyVault(privateKeySecretName);
-  } else {
-    return fs.readFileSync(privateKeyPath, 'utf8');
-  }
-}
+export async function getSymmetricKey(): Promise<Buffer> {
+    if (symmetricKey) {
+        return symmetricKey;
+    }
 
-/**
- * Gets public key from either Azure Key Vault in production or from local file in development
- */
-export async function getPublicKey(): Promise<string> {
-  if (isProduction) {
-    return await getKeyFromKeyVault(publicKeySecretName);
-  } else {
-    return fs.readFileSync(publicKeyPath, 'utf8');
-  }
-}
+    let keyBase64: string | undefined;
 
-/**
- * Retrieves a secret from Azure Key Vault
- */
-async function getKeyFromKeyVault(secretName: string): Promise<string> {
-  try {
-    if (!keyVaultName) {
-      throw new Error('Azure Key Vault name is not configured');
+    if (process.env.NODE_ENV === 'production') {
+        if (!vaultName || !secretName) {
+            throw new Error("Azure Key Vault environment variables are not set for production.");
+        }
+        const credential = new DefaultAzureCredential();
+        const vaultUrl = `https://${vaultName}.vault.azure.net`;
+        const client = new SecretClient(vaultUrl, credential);
+        const secret = await client.getSecret(secretName);
+        keyBase64 = secret.value;
+    } else {
+        // For local development, read from .env.local
+        keyBase64 = process.env.SYMMETRIC_KEY;
+    }
+
+    if (!keyBase64) {
+        throw new Error("Symmetric key could not be found.");
+    }
+
+    symmetricKey = Buffer.from(keyBase64, 'base64');
+    if (symmetricKey.length !== 32) {
+        throw new Error("Invalid symmetric key length. Key must be 256 bits (32 bytes).");
     }
     
-    // Create a secret client using the DefaultAzureCredential
-    const credential = new DefaultAzureCredential();
-    const client = new SecretClient(keyVaultUrl, credential);
-    
-    // Get the secret
-    const secret = await client.getSecret(secretName);
-    
-    if (!secret.value) {
-      throw new Error(`Secret ${secretName} value is empty`);
-    }
-    
-    return secret.value;
-  } catch (error) {
-    console.error(`Error retrieving key from Azure Key Vault: ${error}`);
-    throw error;
-  }
+    return symmetricKey;
 }

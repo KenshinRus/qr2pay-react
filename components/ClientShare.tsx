@@ -1,7 +1,8 @@
-// components/ClientShare.tsx ('use client' for interactive parts)
+// components/ClientShare.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -24,13 +25,13 @@ export default function ClientShare({ data64 }: { data64: string }) {
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${baseUrl}/view?data=${encodeURIComponent(data64)}`)}&size=${qrSize}`;
 
-  const parseData = async () => {
+  const parseData = useCallback(async () => {
     setDetails(await decrypt(data64));
-  }
+  }, [data64]);
 
   useEffect(() => {
     parseData();
-  }, []);
+  }, [parseData]);
 
   const handleResize = (value: string) => {
     setQrSize(value);
@@ -83,6 +84,8 @@ export default function ClientShare({ data64 }: { data64: string }) {
     });
   };
 
+  const [width, height] = qrSize.split('x').map(Number);
+
   return (
     <div className="max-w-xl mx-auto bg-background p-6 rounded-lg shadow-md text-center space-y-6">
       <h1 className="text-2xl font-bold">Your QR code to Pay for share</h1>
@@ -91,7 +94,7 @@ export default function ClientShare({ data64 }: { data64: string }) {
         <h3 className='text-lg'><strong>Account number:</strong> {details?.bankAccount ?? 'NA'}</h3>
         <h3 className='text-lg'><strong>Account owner:</strong> {details?.accountOwner ?? 'NA'}</h3>
       </div>
-      <img src={qrUrl} alt="QR Code" className="mx-auto" />
+      <Image src={qrUrl} alt="QR Code" className="mx-auto" width={width} height={height} />
       <Button onClick={handleDownload} variant="default" className="w-full">Download QR code</Button>
       <Button onClick={handlePrint} variant="default" className="w-full">Print QR code</Button>
       <Button onClick={handleCopyLink} variant="default" className="w-full">Copy link to payment details</Button>
@@ -110,4 +113,3 @@ export default function ClientShare({ data64 }: { data64: string }) {
     </div>
   );
 }
-

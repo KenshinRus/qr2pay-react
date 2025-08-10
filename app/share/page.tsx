@@ -2,7 +2,7 @@
 import ClientShare from '@/components/ClientShare'; // Client component for handling user interaction
 
 export default async function Share({ searchParams }: { searchParams: { [key: string]: string | undefined } }) {
-  const data64 = (await searchParams).data || '';
+  const data64 = searchParams.data || '';
 
   return <ClientShare data64={data64}/>;
 }

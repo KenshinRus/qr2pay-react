@@ -4,36 +4,51 @@
 import { redirect } from 'next/navigation';
 import crypto from 'crypto';
 import { UserData } from './types';
-import { getPrivateKey, getPublicKey } from './keyManager';
+import { getSymmetricKey } from './keyManager';
+
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 12; // For GCM
 
 export async function generateAction(formData: FormData) {
-    console.log('Generating action with form data:', formData);
   const headerTag = formData.get('headertag')?.toString() || '';
   const bankAccount = formData.get('bank_account')?.toString() || '';
   const accountOwner = formData.get('account_owner')?.toString() || '';
   const pin = Math.floor(1000 + Math.random() * 9000).toString();
-  const data = {
-    bankAccount,
-    accountOwner,
-    headerTag,
-    pin,
-  } as UserData;
-  console.log('Data to encrypt:', data);
-  const privateKey = await getPrivateKey();
-  const encrypted = crypto.privateEncrypt(privateKey, Buffer.from(JSON.stringify(data)));
-  const base64 = encrypted.toString('base64');
-  redirect(`/share?data=${encodeURIComponent(base64)}`);
+  const data = { bankAccount, accountOwner, headerTag, pin } as UserData;
+  const dataString = JSON.stringify(data);
+
+  const key = await getSymmetricKey();
+  const iv = crypto.randomBytes(IV_LENGTH);
+  
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const encryptedData = Buffer.concat([cipher.update(dataString, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+
+  // Combine iv, authTag, and encrypted data into a single string for the URL
+  const payload = `${iv.toString('base64')}.${authTag.toString('base64')}.${encryptedData.toString('base64')}`;
+
+  redirect(`/share?data=${encodeURIComponent(payload)}`);
 }
 
-export async function decrypt(data64: string) : Promise<UserData> {
+export async function decrypt(payload: string): Promise<UserData> {
   try {
-    const data = Buffer.from(data64, 'base64');
-    const publicKey = await getPublicKey();
-    const decrypted = crypto.publicDecrypt(publicKey, data);
-    console.log('Decrypted data:', decrypted.toString());
-    return JSON.parse(decrypted.toString()) as UserData;
+    const [iv64, authTag64, encryptedData64] = payload.split('.');
+    if (!iv64 || !authTag64 || !encryptedData64) {
+        throw new Error("Invalid payload format.");
+    }
+
+    const key = await getSymmetricKey();
+    const iv = Buffer.from(iv64, 'base64');
+    const authTag = Buffer.from(authTag64, 'base64');
+    
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+    
+    const decryptedData = Buffer.concat([decipher.update(encryptedData64, 'base64'), decipher.final()]);
+
+    return JSON.parse(decryptedData.toString('utf8')) as UserData;
   } catch (e) {
-    throw new Error(`Decryption failed: ${e}`);
+    console.error("Decryption failed:", e);
+    throw new Error(`Decryption failed. The data may be corrupt or invalid.`);
   }
 }
-
