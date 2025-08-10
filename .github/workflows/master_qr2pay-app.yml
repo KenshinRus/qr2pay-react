@@ -55,21 +55,16 @@ jobs:
           
       - name: Prepare Azure deployment
         run: |
-          # Debug: Show what we downloaded
-          echo "=== Downloaded artifact contents ==="
-          find . -name "*.js" -o -name "*.json" | head -20
+          echo "=== Before restructuring ==="
+          find . -name "server.js" -o -name ".next" -type d | head -10
           
-          # Move standalone files to root
+          # Copy ALL standalone contents to root, preserving structure
           cp -r .next/standalone/* .
           
-          # Ensure static files are in correct location
-          mkdir -p .next
-          cp -r .next/static .next/ || echo "Static files already in place"
+          # The standalone directory should already have the correct .next structure
+          # Just verify it exists and has the required files
           
-          # Copy web.config
-          cp web.config.template web.config || echo "No web.config template"
-          
-          # Create a correct package.json for the deployed structure
+          # Create correct package.json that points to server.js in root
           cat > package.json << 'EOF'
           {
             "name": "qr2pay-react",
@@ -84,15 +79,17 @@ jobs:
           }
           EOF
           
-          # Verify final structure
-          echo "=== Final deployment structure ==="
+          # Copy web.config if available
+          cp web.config.template web.config 2>/dev/null || echo "No web.config template"
+          
+          echo "=== Final verification ==="
+          echo "Files in root:"
           ls -la
-          echo "=== server.js check ==="
-          ls -la server.js && echo "✅ server.js found" || echo "❌ server.js missing"
-          echo "=== package.json content ==="
+          echo "server.js exists:" && test -f server.js && echo "✅ YES" || echo "❌ NO"
+          echo ".next directory:" && test -d .next && echo "✅ EXISTS" || echo "❌ MISSING"
+          echo ".next contents:" && ls -la .next/ 2>/dev/null || echo "Empty .next"
+          echo "package.json contents:"
           cat package.json
-          echo "=== .next directory ==="
-          ls -la .next/ || echo "No .next directory"
       
       - name: Login to Azure
         uses: azure/login@v2
