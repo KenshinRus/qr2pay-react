@@ -3,10 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Enable standalone output so the runtime can use .next/standalone without needing the Next CLI
   output: 'standalone',
-  // Ensure experimental features are enabled for better Azure compatibility
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
+  // External packages for server components
+  serverExternalPackages: [],
   images: {
     remotePatterns: [
       {

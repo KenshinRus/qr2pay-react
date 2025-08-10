@@ -29,11 +29,19 @@ jobs:
           npm run build --if-present
           npm run test --if-present
 
+      - name: Prepare deployment package
+        run: |
+          # Copy static files to standalone directory
+          cp -r .next/static .next/standalone/.next/
+          cp -r public .next/standalone/
+          # Create a minimal package.json for production
+          echo '{"name":"qr2pay-react","scripts":{"start":"node server.js"},"engines":{"node":"22.x"}}' > .next/standalone/package.json
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: .next/standalone
 
   deploy:
     runs-on: ubuntu-latest
@@ -62,4 +70,5 @@ jobs:
           app-name: 'qr2pay-app'
           slot-name: 'Production'
           package: .
+          startup-command: 'node server.js'
           
