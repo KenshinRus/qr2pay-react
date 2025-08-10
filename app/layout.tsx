@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'QR to Pay',
   description: 'Free service to generate QR for sharing payment details',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({
