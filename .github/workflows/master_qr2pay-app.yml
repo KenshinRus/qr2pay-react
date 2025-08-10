@@ -29,19 +29,16 @@ jobs:
           npm run build --if-present
           npm run test --if-present
 
-      - name: Prepare deployment package
-        run: |
-          # Copy static files to standalone directory
-          cp -r .next/static .next/standalone/.next/
-          cp -r public .next/standalone/
-          # Create a minimal package.json for production
-          echo '{"name":"qr2pay-react","scripts":{"start":"node server.js"},"engines":{"node":"22.x"}}' > .next/standalone/package.json
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .next/standalone
+          path: |
+            .next/standalone
+            .next/static  
+            public
+            web.config.template
+            .deployment
 
   deploy:
     runs-on: ubuntu-latest
@@ -55,6 +52,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          
+      - name: Prepare Azure deployment
+        run: |
+          # Move standalone files to root
+          cp -r .next/standalone/* .
+          # Ensure static files are in correct location
+          mkdir -p .next
+          cp -r .next/static .next/ || echo "Static files already in place"
+          # Copy web.config
+          cp web.config.template web.config || echo "No web.config template"
+          # List structure
+          ls -la
+          echo "Server.js exists:" && ls -la server.js || echo "No server.js found"
       
       - name: Login to Azure
         uses: azure/login@v2
