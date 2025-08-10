@@ -1,7 +1,7 @@
 /**
  * Server starter script for Next.js on Azure
  * This script:
- * 1. Checks for .next directory and builds if missing
+ * 1. Runs pre-start script to ensure .next directory exists
  * 2. Checks for standalone mode and starts appropriately
  * 3. Falls back to regular Next.js server if standalone is not available
  */
@@ -10,6 +10,13 @@ const { execSync } = require('child_process');
 const { join, resolve } = require('path');
 const { createServer } = require('http');
 const { parse } = require('url');
+
+// Run pre-start script to ensure build exists
+try {
+  require('./pre-start');
+} catch (error) {
+  console.warn('Failed to run pre-start script:', error.message);
+}
 
 // Set NODE_ENV to production if not already set
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
