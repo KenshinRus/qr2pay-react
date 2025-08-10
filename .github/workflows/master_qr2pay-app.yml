@@ -37,7 +37,41 @@ jobs:
           # Copy all standalone files to deployment root
           cp -r .next/standalone/* deployment/
           
-          # Copy static files to deployment/.next/
+          # Ensure .next directory exists with all required files
+          mkdir -p deployment/.next
+          cp -r .next/static deployment/.next/ 2>/dev/null || echo "No static files"
+          cp -r .next/server deployment/.next/ 2>/dev/null || echo "No server files"
+          cp .next/BUILD_ID deployment/.next/ 2>/dev/null || echo "No BUILD_ID"
+          cp .next/routes-manifest.json deployment/.next/ 2>/dev/null || echo "No routes-manifest"
+          cp .next/prerender-manifest.json deployment/.next/ 2>/dev/null || echo "No prerender-manifest"
+          
+          # Copy debug files
+          cp debug-start.js deployment/
+          cp .deployment-settings deployment/ || echo "No deployment-settings"
+          
+          # Create optimized package.json for Azure
+          cat > deployment/package.json << 'EOF'
+          {
+            "name": "qr2pay-react",
+            "version": "0.1.0",
+            "scripts": {
+              "start": "node debug-start.js"
+            },
+            "engines": {
+              "node": "22.x",
+              "npm": "10.x"
+            }
+          }
+          EOF
+          
+          # Verification
+          echo "=== Deployment structure verification ==="
+          test -f deployment/server.js && echo "✅ server.js" || echo "❌ server.js"
+          test -d deployment/.next && echo "✅ .next dir" || echo "❌ .next dir"
+          test -f deployment/debug-start.js && echo "✅ debug-start.js" || echo "❌ debug-start.js"
+          test -f deployment/.deployment-settings && echo "✅ deployment-settings" || echo "❌ deployment-settings"
+          echo "Deployment files:"
+          ls -la deployment/ | head -10
           mkdir -p deployment/.next
           cp -r .next/static deployment/.next/ || echo "No static files to copy"
           

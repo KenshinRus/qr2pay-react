@@ -7,9 +7,9 @@
     "npm": "10.x"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
-    "start": "node .next/standalone/server.js",
+    "start": "node debug-start.js",
     "lint": "next lint"
   },
   "dependencies": {
