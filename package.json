@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node debug-start.js",
+    "start": "node server.js",
+    "debug": "node debug-start.js",
     "lint": "next lint"
   },
   "dependencies": {
