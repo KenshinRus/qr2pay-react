@@ -34,9 +34,9 @@ jobs:
         with:
           name: node-app
           path: |
-            .next/standalone
-            .next/static  
-            public
+            .next/standalone/
+            .next/static/
+            public/
             web.config.template
             .deployment
 
@@ -55,16 +55,44 @@ jobs:
           
       - name: Prepare Azure deployment
         run: |
+          # Debug: Show what we downloaded
+          echo "=== Downloaded artifact contents ==="
+          find . -name "*.js" -o -name "*.json" | head -20
+          
           # Move standalone files to root
           cp -r .next/standalone/* .
+          
           # Ensure static files are in correct location
           mkdir -p .next
           cp -r .next/static .next/ || echo "Static files already in place"
+          
           # Copy web.config
           cp web.config.template web.config || echo "No web.config template"
-          # List structure
+          
+          # Create a correct package.json for the deployed structure
+          cat > package.json << 'EOF'
+          {
+            "name": "qr2pay-react",
+            "version": "0.1.0",
+            "scripts": {
+              "start": "node server.js"
+            },
+            "engines": {
+              "node": "22.x",
+              "npm": "10.x"
+            }
+          }
+          EOF
+          
+          # Verify final structure
+          echo "=== Final deployment structure ==="
           ls -la
-          echo "Server.js exists:" && ls -la server.js || echo "No server.js found"
+          echo "=== server.js check ==="
+          ls -la server.js && echo "✅ server.js found" || echo "❌ server.js missing"
+          echo "=== package.json content ==="
+          cat package.json
+          echo "=== .next directory ==="
+          ls -la .next/ || echo "No .next directory"
       
       - name: Login to Azure
         uses: azure/login@v2
