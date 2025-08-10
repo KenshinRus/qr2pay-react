@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Email options
     const mailOptions = {
       from: process.env.GMAIL_USER,
-      to: process.env.GMAIL_USER, // Send to yourself
+      to: 'kenshin.va@gmail.com', // Send to yourself
       replyTo: email,
       subject: `Contact Form Submission from ${name}`,
       html: `
