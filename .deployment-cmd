@@ -1,0 +1,30 @@
+@echo off
+echo Azure Web App Deployment Script
+
+REM Make sure we're in the right directory
+echo Current directory: %CD%
+
+REM Install dependencies
+call npm ci --no-audit
+IF %ERRORLEVEL% NEQ 0 (
+  echo Error installing dependencies.
+  exit /b 1
+)
+
+REM Build the Next.js application
+call npx next build
+IF %ERRORLEVEL% NEQ 0 (
+  echo Error building Next.js app.
+  exit /b 1
+)
+
+REM Verify build output
+if exist ".next\standalone" (
+  echo Next.js standalone build created successfully.
+) else (
+  echo WARNING: Standalone build not found, make sure output:standalone is in next.config.
+)
+
+REM Success
+echo Deployment completed successfully.
+exit /b 0
