@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "node startup.js",
     "start:prod": "NODE_ENV=production node startup.js",
+    "start:server": "node server.js",
+    "diagnose": "node -e \"console.log('Node:', process.version); console.log('CWD:', process.cwd()); console.log('Files:'); require('fs').readdirSync('.').forEach(f => console.log(' -', f)); console.log('Build exists:', require('fs').existsSync('.next/BUILD_ID'));\"",
     "debug": "node debug-start.js",
     "lint": "next lint"
   },

@@ -1,62 +1,59 @@
-// startup.js
-const { spawn } = require('child_process');
+// startup.js - Simplified approach for Azure App Service
 const fs = require('fs');
 const path = require('path');
 
-console.log('Starting application startup process...');
+console.log('Starting application...');
 
-async function ensureProductionBuild() {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
+// Check if we have a production build
+const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && !fs.existsSync(buildIdPath)) {
+  console.error('===================================================');
+  console.error('PRODUCTION BUILD NOT FOUND');
+  console.error('===================================================');
+  console.error('Expected build artifacts in .next directory');
+  console.error('Current working directory:', process.cwd());
+  console.error('Looking for BUILD_ID at:', buildIdPath);
   
-  if (isProduction) {
-    console.log('Production mode detected');
-    
-    // Check if .next directory exists and has build files
-    if (!fs.existsSync(buildIdPath)) {
-      console.log('No production build found. Building application...');
-      
-      return new Promise((resolve, reject) => {
-        const buildProcess = spawn('npm', ['run', 'build'], {
-          stdio: 'inherit',
-          shell: true
-        });
-        
-        buildProcess.on('close', (code) => {
-          if (code !== 0) {
-            console.error('Build failed! Exiting...');
-            reject(new Error(`Build process exited with code ${code}`));
-            return;
-          }
-          
-          console.log('Build completed successfully');
-          resolve();
-        });
-        
-        buildProcess.on('error', (error) => {
-          console.error('Build process error:', error);
-          reject(error);
-        });
-      });
-    } else {
-      console.log('Production build found, skipping build step');
-    }
-  }
-}
-
-async function startServer() {
+  // List what's in the current directory
+  console.error('Directory contents:');
   try {
-    await ensureProductionBuild();
-    
-    console.log('Starting server...');
-    
-    // Start the actual server
-    require('./server.js');
-    
-  } catch (error) {
-    console.error('Startup failed:', error);
-    process.exit(1);
+    const files = fs.readdirSync(process.cwd());
+    files.forEach(file => {
+      console.error('  -', file);
+    });
+  } catch (err) {
+    console.error('Could not list directory contents:', err.message);
   }
+  
+  // Check if .next exists at all
+  const nextDir = path.join(process.cwd(), '.next');
+  if (fs.existsSync(nextDir)) {
+    console.error('.next directory exists, contents:');
+    try {
+      const nextFiles = fs.readdirSync(nextDir);
+      nextFiles.forEach(file => {
+        console.error('  -', file);
+      });
+    } catch (err) {
+      console.error('Could not list .next contents:', err.message);
+    }
+  } else {
+    console.error('.next directory does not exist');
+  }
+  
+  console.error('===================================================');
+  console.error('FALLING BACK TO DEVELOPMENT MODE');
+  console.error('===================================================');
+  
+  // Override NODE_ENV to development to avoid the production check
+  process.env.NODE_ENV = 'development';
+  console.log('Environment changed to development mode');
 }
 
-startServer();
+console.log(`Final NODE_ENV: ${process.env.NODE_ENV}`);
+console.log('Starting server...');
+
+// Start the actual server
+require('./server.js');

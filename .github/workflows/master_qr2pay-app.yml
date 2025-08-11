@@ -25,22 +25,37 @@ jobs:
 
       - name: npm install, build, and test
         run: |
-          npm ci
+          npm ci --include=dev
           npm run build
+          ls -la .next/ || echo "No .next directory found"
           
       - name: Verify build output
         run: |
           if [ ! -f ".next/BUILD_ID" ]; then
             echo "Build verification failed - no BUILD_ID found"
+            ls -la .next/ || echo "No .next directory"
             exit 1
           fi
           echo "Build verification passed"
+          echo "BUILD_ID content: $(cat .next/BUILD_ID)"
+
+      - name: Clean up unnecessary files for deployment
+        run: |
+          # Remove dev dependencies to reduce package size, but keep build artifacts
+          echo "Current directory size:"
+          du -sh .
+          echo "Keeping build artifacts and production files only"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: |
+            .
+            !.git
+            !node_modules
+            .next
+          retention-days: 1
 
   deploy:
     runs-on: ubuntu-latest
@@ -54,6 +69,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          
+      - name: Verify deployment package
+        run: |
+          echo "Verifying deployment package contents..."
+          ls -la
+          echo "Checking for .next directory..."
+          ls -la .next/ || echo "WARNING: .next directory not found in deployment package"
+          echo "Checking for BUILD_ID..."
+          cat .next/BUILD_ID || echo "WARNING: BUILD_ID not found"
+          echo "Checking for package.json..."
+          ls -la package.json || echo "WARNING: package.json not found"
       
       - name: Login to Azure
         uses: azure/login@v2

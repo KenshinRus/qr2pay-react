@@ -1,0 +1,19 @@
+{
+  "name": "qr2pay-react",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node startup.js",
+    "start:prod": "NODE_ENV=production node startup.js",
+    "start:server": "node server.js",
+    "diagnose": "node deploy-check.sh",
+    "debug": "node debug-start.js",
+    "lint": "next lint"
+  }
+}
