@@ -1,28 +1,20 @@
 /**
  * Server starter script for Next.js on Azure
- * This script:
- * 1. Runs pre-start script to ensure .next directory exists
- * 2. Checks for standalone mode and starts appropriately
- * 3. Falls back to regular Next.js server if standalone is not available
+ * This script focuses on building and running the Next.js application
  */
-const { existsSync, readFileSync, cpSync } = require('fs');
-const { execSync } = require('child_process');
+const { existsSync, readFileSync, cpSync, mkdirSync } = require('fs');
+const { execSync, spawnSync } = require('child_process');
 const { join, resolve } = require('path');
 const { createServer } = require('http');
 const { parse } = require('url');
 
-// Run pre-start script to ensure build exists
-try {
-  require('./pre-start');
-} catch (error) {
-  console.warn('Failed to run pre-start script:', error.message);
-}
-
 // Set NODE_ENV to production if not already set
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+process.env.NODE_ENV = 'production';
 
-// Log environment information for debugging
-console.log('Server starting...');
+// Log environment for debugging
+console.log('======================================');
+console.log('NEXT.JS SERVER STARTING - AZURE APP SERVICE');
+console.log('======================================');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Current directory:', process.cwd());
 console.log('Node.js version:', process.version);
@@ -30,51 +22,120 @@ console.log('Node.js version:', process.version);
 // Define port - Azure Web Apps sets PORT environment variable
 const port = process.env.PORT || 3000;
 const nextDir = join(process.cwd(), '.next');
-const standaloneDir = join(nextDir, 'standalone');
-const standaloneServerFile = join(standaloneDir, 'server.js');
 
-// Build the app if .next directory doesn't exist
-if (!existsSync(nextDir)) {
-  console.log('.next directory not found. Running build...');
+// CRITICAL: Always build the app before attempting to start
+// This ensures we have a .next directory
+console.log('======================================');
+console.log('BUILDING NEXT.JS APPLICATION');
+console.log('======================================');
+
+// Show directory listing
+try {
+  console.log('Current directory contents:');
+  const dirContents = execSync('ls -la').toString();
+  console.log(dirContents);
+} catch (error) {
+  console.log('Failed to list directory:', error.message);
+}
+
+// Install dependencies if needed
+if (!existsSync(join(process.cwd(), 'node_modules')) || 
+    !existsSync(join(process.cwd(), 'node_modules/.package-lock.json'))) {
+  console.log('Installing dependencies...');
   try {
     execSync('npm ci --no-audit', { stdio: 'inherit' });
-    execSync('npx next build', { stdio: 'inherit' });
-    console.log('Build completed successfully');
   } catch (error) {
-    console.error('Build failed:', error.message);
+    console.error('Failed to install dependencies:', error.message);
+    // Continue anyway, as node_modules might be extracted later
+  }
+}
+
+// Always run the build
+try {
+  console.log('Building Next.js application...');
+  execSync('npx next build', { stdio: 'inherit' });
+  console.log('Next.js build completed');
+} catch (error) {
+  console.error('Build failed:', error.message);
+  console.error('Will attempt to continue with existing .next directory if available');
+}
+
+// Check if .next directory exists now
+if (!existsSync(nextDir)) {
+  console.error('ERROR: .next directory still not found after build attempt!');
+  console.error('This could indicate a build failure or permission issue.');
+  
+  // Try one more desperate build attempt
+  try {
+    console.log('Last resort: Trying direct npx command...');
+    spawnSync('npx', ['next', 'build'], { stdio: 'inherit' });
+  } catch (e) {
+    console.error('Final build attempt failed:', e.message);
+  }
+  
+  // Check again
+  if (!existsSync(nextDir)) {
+    console.error('FATAL: Still cannot create .next directory. Server cannot start.');
     process.exit(1);
   }
 }
 
-// Check for standalone mode
-if (existsSync(standaloneServerFile)) {
-  console.log('Standalone server found, starting in standalone mode...');
-  
-  try {
-    // Copy necessary files to standalone directory
-    if (existsSync(join(nextDir, 'static'))) {
-      console.log('Copying static files to standalone directory...');
-      cpSync(join(nextDir, 'static'), join(standaloneDir, 'static'), { recursive: true });
-    }
+// Check and log .next directory contents
+console.log('.next directory exists, contents:');
+try {
+  const nextDirContents = execSync(`ls -la ${nextDir}`).toString();
+  console.log(nextDirContents);
+} catch (error) {
+  console.log('Failed to list .next directory:', error.message);
+}
+
+// Now check for standalone mode
+const standaloneDir = join(nextDir, 'standalone');
+const standaloneServerFile = join(standaloneDir, 'server.js');
+
+console.log('Starting Next.js server...');
+try {
+  if (existsSync(standaloneServerFile)) {
+    // Standalone mode detected
+    console.log('Standalone mode detected, setting up standalone server...');
     
-    if (existsSync(join(process.cwd(), 'public'))) {
-      console.log('Copying public files to standalone directory...');
-      cpSync(join(process.cwd(), 'public'), join(standaloneDir, 'public'), { recursive: true });
+    try {
+      // Create directories in standalone if they don't exist
+      if (!existsSync(join(standaloneDir, 'static'))) {
+        mkdirSync(join(standaloneDir, 'static'), { recursive: true });
+      }
+      
+      if (!existsSync(join(standaloneDir, 'public'))) {
+        mkdirSync(join(standaloneDir, 'public'), { recursive: true });
+      }
+      
+      // Copy static files
+      if (existsSync(join(nextDir, 'static'))) {
+        console.log('Copying static files to standalone directory...');
+        cpSync(join(nextDir, 'static'), join(standaloneDir, 'static'), { recursive: true });
+      }
+      
+      // Copy public files
+      if (existsSync(join(process.cwd(), 'public'))) {
+        console.log('Copying public files to standalone directory...');
+        cpSync(join(process.cwd(), 'public'), join(standaloneDir, 'public'), { recursive: true });
+      }
+      
+      // Change directory and run standalone server
+      console.log('Starting standalone server from', standaloneDir);
+      process.chdir(standaloneDir);
+      
+      // Directly require the standalone server
+      require(standaloneServerFile);
+    } catch (error) {
+      console.error('Error in standalone mode:', error.message);
+      throw error; // Let the outer catch handle this
     }
+  } else {
+    // Regular Next.js server
+    console.log('Using regular Next.js server...');
     
-    // Change to standalone directory and start server
-    console.log('Starting standalone server...');
-    process.chdir(standaloneDir);
-    require('./server');
-  } catch (error) {
-    console.error('Error starting standalone server:', error);
-    process.exit(1);
-  }
-} else {
-  // Start regular Next.js server
-  console.log('Standalone server not found, starting regular Next.js server on port', port);
-  try {
-    // Import Next.js
+    // Import Next.js directly
     const next = require('next');
     
     // Create the Next.js app instance
@@ -93,12 +154,17 @@ if (existsSync(standaloneServerFile)) {
         if (err) throw err;
         console.log(`> Ready on http://localhost:${port}`);
       });
-    }).catch(error => {
-      console.error('Error while starting server:', error);
-      process.exit(1);
     });
-  } catch (error) {
-    console.error('Fatal error starting server:', error);
+  }
+} catch (error) {
+  console.error('Fatal server error:', error);
+  
+  // Try direct start as a last resort
+  try {
+    console.log('Attempting last resort: direct next start...');
+    execSync('npx next start -p ' + port, { stdio: 'inherit' });
+  } catch (finalError) {
+    console.error('All attempts failed, cannot start server:', finalError.message);
     process.exit(1);
   }
 }
