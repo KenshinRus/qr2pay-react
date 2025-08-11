@@ -25,9 +25,16 @@ jobs:
 
       - name: npm install, build, and test
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+          npm ci
+          npm run build
+          
+      - name: Verify build output
+        run: |
+          if [ ! -f ".next/BUILD_ID" ]; then
+            echo "Build verification failed - no BUILD_ID found"
+            exit 1
+          fi
+          echo "Build verification passed"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

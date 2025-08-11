@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node server.js",
+    "start": "node startup.js",
+    "start:prod": "NODE_ENV=production node startup.js",
     "debug": "node debug-start.js",
     "lint": "next lint"
   },
