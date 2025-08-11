@@ -1,4 +1,4 @@
-// startup.js - Simplified approach for Azure App Service
+// startup.js - Azure App Service startup with robust build handling
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -10,33 +10,43 @@ const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID');
 const isProduction = process.env.NODE_ENV === 'production';
 
 async function attemptBuild() {
-  console.log('Attempting to build the application...');
+  console.log('Attempting to build the application in Azure...');
   
   return new Promise((resolve, reject) => {
-    // Use the Next.js binary that should be available in Azure
+    // In Azure, node_modules are extracted to /node_modules and linked
+    // We need to use npx to find the next binary
     const buildProcess = spawn('npx', ['next', 'build'], {
       stdio: 'inherit',
       shell: true,
       env: {
         ...process.env,
-        PATH: `/node_modules/.bin:${process.env.PATH}`,
-        NODE_PATH: '/node_modules'
+        // Ensure proper PATH for Azure environment
+        PATH: `/node_modules/.bin:${process.env.PATH || ''}`,
+        NODE_PATH: `/node_modules:${process.env.NODE_PATH || ''}`
       },
       cwd: process.cwd()
     });
     
+    let buildTimeout = setTimeout(() => {
+      console.error('Build process timed out after 5 minutes');
+      buildProcess.kill();
+      reject(new Error('Build timeout'));
+    }, 300000); // 5 minutes timeout
+    
     buildProcess.on('close', (code) => {
+      clearTimeout(buildTimeout);
       if (code !== 0) {
         console.error(`Build failed with exit code ${code}`);
         reject(new Error(`Build process exited with code ${code}`));
         return;
       }
       
-      console.log('Build completed successfully');
+      console.log('✅ Build completed successfully in Azure!');
       resolve();
     });
     
     buildProcess.on('error', (error) => {
+      clearTimeout(buildTimeout);
       console.error('Build process error:', error);
       reject(error);
     });
@@ -80,14 +90,18 @@ async function startApplication() {
     }
     
     console.error('===================================================');
-    console.error('ATTEMPTING TO BUILD IN PRODUCTION');
+    console.error('ATTEMPTING TO BUILD IN AZURE PRODUCTION');
     console.error('===================================================');
     
     try {
       await attemptBuild();
       
+      // Wait a moment for filesystem to sync
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       if (fs.existsSync(buildIdPath)) {
         console.log('✅ Build successful! BUILD_ID now exists.');
+        console.log(`BUILD_ID content: ${fs.readFileSync(buildIdPath, 'utf8')}`);
         console.log(`Final NODE_ENV: ${process.env.NODE_ENV}`);
         console.log('Starting server in production mode...');
       } else {
@@ -103,6 +117,9 @@ async function startApplication() {
       process.env.NODE_ENV = 'development';
       console.log('Environment changed to development mode');
     }
+  } else if (isProduction && fs.existsSync(buildIdPath)) {
+    console.log('✅ Production build found!');
+    console.log(`BUILD_ID: ${fs.readFileSync(buildIdPath, 'utf8')}`);
   }
 
   console.log(`Final NODE_ENV: ${process.env.NODE_ENV}`);

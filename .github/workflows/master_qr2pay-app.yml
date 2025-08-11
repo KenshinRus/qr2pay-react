@@ -59,24 +59,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: |
-            .next/
-            app/
-            components/
-            lib/
-            public/
-            utils/
-            package.json
-            package-lock.json
-            next.config.ts
-            next-env.d.ts
-            server.js
-            startup.js
-            tailwind.config.js
-            tsconfig.json
-            postcss.config.mjs
-            eslint.config.mjs
+          path: .
           retention-days: 1
+          
+      - name: Debug - List what's being uploaded
+        run: |
+          echo "Current directory contents:"
+          find . -type f -name "BUILD_ID" -exec ls -la {} \;
+          echo "All files in .next:"
+          ls -la .next/ || echo "No .next directory"
 
   deploy:
     runs-on: ubuntu-latest
