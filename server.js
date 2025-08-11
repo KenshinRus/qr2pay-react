@@ -1,52 +1,62 @@
 /**
- * Server starter script for Next.js on Azure
- * This script focuses on building and running the Next.js application
+ * Simple server wrapper for Next.js
+ * This script is a simplified version that delegates to Next.js directly
  */
-const { existsSync, readFileSync, cpSync, mkdirSync } = require('fs');
-const { execSync, spawnSync } = require('child_process');
-const { join, resolve } = require('path');
-const { createServer } = require('http');
-const { parse } = require('url');
+console.log('============================================');
+console.log('SIMPLE NEXT.JS SERVER - FALLBACK VERSION');
+console.log('============================================');
+console.log('Node version:', process.version);
+console.log('Current directory:', process.cwd());
 
-// Set NODE_ENV to production if not already set
+// Set production mode
 process.env.NODE_ENV = 'production';
 
-// Log environment for debugging
-console.log('======================================');
-console.log('NEXT.JS SERVER STARTING - AZURE APP SERVICE');
-console.log('======================================');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Current directory:', process.cwd());
-console.log('Node.js version:', process.version);
-
-// Define port - Azure Web Apps sets PORT environment variable
+// Get the port from environment or default to 3000
 const port = process.env.PORT || 3000;
-const nextDir = join(process.cwd(), '.next');
 
-// CRITICAL: Always build the app before attempting to start
-// This ensures we have a .next directory
-console.log('======================================');
-console.log('BUILDING NEXT.JS APPLICATION');
-console.log('======================================');
-
-// Show directory listing
 try {
-  console.log('Current directory contents:');
-  const dirContents = execSync('ls -la').toString();
-  console.log(dirContents);
+  // Try to load Next.js directly
+  const next = require('next');
+  const http = require('http');
+  
+  console.log('Starting Next.js application in production mode');
+  console.log('Port:', port);
+  
+  // Create a Next.js app instance
+  const app = next({
+    dev: false,
+    dir: process.cwd()
+  });
+  
+  // Get the request handler
+  const handle = app.getRequestHandler();
+  
+  // Prepare and start the server
+  app.prepare()
+    .then(() => {
+      // Create HTTP server
+      const server = http.createServer((req, res) => {
+        handle(req, res);
+      });
+      
+      // Start listening
+      server.listen(port, (err) => {
+        if (err) throw err;
+        console.log(`> Ready on http://localhost:${port}`);
+      });
+    });
 } catch (error) {
-  console.log('Failed to list directory:', error.message);
-}
-
-// Install dependencies if needed
-if (!existsSync(join(process.cwd(), 'node_modules')) || 
-    !existsSync(join(process.cwd(), 'node_modules/.package-lock.json'))) {
-  console.log('Installing dependencies...');
+  console.error('Failed to start server directly:', error);
+  
+  // Try to use the CLI as fallback
   try {
-    execSync('npm ci --no-audit', { stdio: 'inherit' });
-  } catch (error) {
-    console.error('Failed to install dependencies:', error.message);
-    // Continue anyway, as node_modules might be extracted later
+    console.log('Attempting to start using Next.js CLI...');
+    require('child_process').execSync(`npx next start -p ${port}`, { 
+      stdio: 'inherit' 
+    });
+  } catch (cliError) {
+    console.error('All server start methods failed:', cliError);
+    process.exit(1);
   }
 }
 
