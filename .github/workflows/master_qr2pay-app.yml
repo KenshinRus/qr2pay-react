@@ -94,5 +94,4 @@ jobs:
           app-name: 'qr2pay-app'
           slot-name: 'Production'
           package: .
-          skip-app-build: true
           
