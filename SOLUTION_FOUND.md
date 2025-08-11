@@ -1,74 +1,127 @@
-# SOLUTION FOUND - Final Fix Applied
+# SOLUTION FOUND - Next.js on Azure App Service
 
 ## Root Cause Identified ✅
 
-From the container logs, the progression of errors was:
+The core issue was related to how Next.js builds are handled when deploying to Azure App Service:
 
-1. **First error**: `node .next/standalone/server.js` → "Cannot find module" (FIXED)
-2. **Second error**: `node server.js` starts but → "Could not find a production build in the './.next' directory" (FIXING NOW)
+1. **Primary Error**: `Could not find a production build in the './.next' directory`
+2. **Root Cause**: Next.js application wasn't being built before the server tried to start
 
-## The Problems
+## Two Solutions Implemented
 
-### Problem 1: Wrong startup path ✅ FIXED
-- **Azure ran**: `npm start` → `node .next/standalone/server.js`
-- **But file location**: `server.js` was in root after deployment
-- **Fixed by**: Creating correct package.json with `"start": "node server.js"`
+### Solution 1: Robust Build-Time Detection (Primary)
 
-### Problem 2: Missing .next build directory 🔧 FINAL FIX APPLIED
-- **Next.js expects**: `.next/` directory with build artifacts in same directory as `server.js`
-- **Root issue**: Artifact upload/download wasn't preserving the `.next` directory structure correctly
-- **Final Fix**: Pre-build the deployment structure in GitHub Actions before upload
+We've implemented a comprehensive solution that ensures the Next.js application is properly built:
 
-## The Complete Fix Applied
+1. **Enhanced server.js**:
+   - Checks for the existence of the `.next` directory at startup
+   - Automatically runs `next build` if the directory is missing
+   - Handles standalone mode correctly (copying static assets)
+   - Includes multiple fallback mechanisms for starting the server
 
-### Updated GitHub Actions Workflow (FINAL VERSION):
+2. **Custom startup.sh script**:
+   - Provides an alternative startup method
+   - Ensures proper execution in container environments
+   - Handles static assets for standalone output mode
 
-#### Build Stage:
-1. **Build the Next.js app**: `npm run build` creates standalone output
-2. **Pre-structure deployment**: Create `deployment/` directory with correct layout
-3. **Copy files correctly**:
-   - `cp -r .next/standalone/* deployment/` (gets server.js and .next/)
-   - `cp -r .next/static deployment/.next/` (adds static files)
-   - `cp -r public deployment/` (adds public assets)
-4. **Create correct package.json**: `"start": "node server.js"`
-5. **Upload pre-structured deployment**: Only upload the `deployment/` directory
+### Solution 2: Pre-Build in CI/CD (Preferred for Production)
 
-#### Deploy Stage:
-1. **Download artifact**: Gets pre-built deployment structure
-2. **Verify structure**: Confirms all files are in correct locations
-3. **Deploy to Azure**: Structure is already correct
+For production deployments, we recommend using GitHub Actions to:
 
-### Expected Container Flow:
-```bash
-# Azure container startup:
-npm start
-> node server.js  
-# server.js finds .next/ directory ✅
-# .next contains all build artifacts ✅
-# Next.js production build loads ✅
-# App starts on port 8080 ✅
+1. **Pre-build the application** during the CI/CD process
+2. **Deploy the built application** including the `.next` directory
+3. **Start with `node server.js`** in the Azure environment
+
+## Key Files Updated
+
+1. **server.js**:
+   ```javascript
+   // Check if .next exists, build if missing
+   if (!fs.existsSync('.next')) {
+     console.log('Building Next.js application...');
+     execSync('npx next build', { stdio: 'inherit' });
+   }
+   
+   // Handle standalone mode if detected
+   if (fs.existsSync('.next/standalone')) {
+     // Copy static assets and start standalone server
+   } else {
+     // Start regular Next.js server
+   }
+   ```
+
+2. **startup.sh**:
+   ```bash
+   #!/bin/bash
+   
+   # Show .next directory contents
+   echo ".next directory contents:"
+   ls -la .next
+   
+   # Check for standalone mode
+   if [ -d ".next/standalone" ]; then
+     echo "Detected standalone output mode. Starting standalone server..."
+     # Copy static files and start server
+   else
+     # Use regular Next.js server
+     npx next start -p $PORT || node server.js
+   fi
+   ```
+
+3. **package.json**:
+   ```json
+   "scripts": {
+     "dev": "next dev",
+     "build": "next build",
+     "start": "node server.js"
+   },
+   "engines": {
+     "node": "22.x",
+     "npm": "10.x"
+   }
+   ```
+
+## Azure Configuration
+
+### Recommended App Settings:
+
+```
+NODE_ENV=production
+PORT=8080
+WEBSITE_NODE_DEFAULT_VERSION=22.17.0
+SCM_DO_BUILD_DURING_DEPLOYMENT=true
 ```
 
-## Key Insight - The Artifact Upload Issue
+### Startup Command Options:
 
-The problem was that uploading individual paths:
-```yaml
-path: |
-  .next/standalone/
-  .next/static/
-  public/
+```
+node server.js
 ```
 
-Didn't preserve the internal structure correctly when downloaded. 
+or for more robust startup:
 
-**Solution**: Pre-build the entire deployment structure and upload as one directory:
-```yaml
-path: deployment/
+```
+bash startup.sh
 ```
 
-## Next Steps:
-1. **Push these changes** - The workflow now pre-builds the correct structure
-2. **Monitor deployment** - Should see successful startup without ANY "production build" errors
-3. **Test application** - Should be accessible at your Azure URL
+## Documentation Added
 
-This final fix addresses the artifact structure preservation issue that was causing the `.next` directory to be missing or incomplete in the deployed container.
+1. **AZURE_DEPLOYMENT.md**: Complete deployment guide for Azure App Service
+2. **CONTAINER_TROUBLESHOOTING.md**: Detailed troubleshooting guide for container issues
+
+## Why This Works
+
+Our solution addresses the core issue by:
+
+1. **Ensuring build happens**: Either during deployment or at runtime
+2. **Multiple fallback mechanisms**: If one approach fails, others are tried
+3. **Proper error handling**: Clear error messages and diagnostic logging
+4. **Standalone mode support**: Correct handling of Next.js standalone output
+
+## Next Steps
+
+1. **Deploy with GitHub Actions**: Use CI/CD for the best production experience
+2. **Monitor logs**: Check for any remaining issues
+3. **Configure environment variables**: Set up all required environment variables
+
+This solution provides a robust approach to deploying Next.js applications to Azure App Service, solving the common "missing .next directory" issue.
