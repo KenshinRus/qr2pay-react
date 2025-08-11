@@ -101,33 +101,76 @@ Configure your Azure Web App deployment settings:
 Set the startup command in Configuration → General settings:
 
 ```bash
-node server.js
+bash -c "cd /home/site/wwwroot && npm run build && node server.js"
 ```
 
-Or for more robust startup:
+For more robust startup with detailed logging:
 
 ```bash
-bash startup.sh
+bash -c "cd /home/site/wwwroot && echo 'Directory contents:' && ls -la && echo 'Building app...' && npm run build && echo 'Starting server...' && node server.js"
+```
+
+For advanced diagnostics and auto-fixing (RECOMMENDED):
+
+```bash
+node debug-start.js
 ```
 
 ## Troubleshooting
 
-If you still encounter the "Could not find a production build" error:
+### Handling the "Could not find a production build in the './.next' directory" Error
 
-1. **Check Azure App Service logs**:
-   - Go to your Web App → Monitoring → Log stream
-   - Look for build or startup errors
+If you see this specific error in your logs:
 
-2. **Verify the build process**:
-   - Check if `.next` directory exists in the deployment
-   - Ensure `next build` is executing successfully
+```plaintext
+[Error: Could not find a production build in the './.next' directory. Try building your app with 'next build' before starting the production server.]
+```
 
-3. **Try the alternative startup method**:
-   - If GitHub Actions deployment isn't working, try setting the startup command to `bash startup.sh`
-   - This will attempt to build the application at runtime
+This indicates that the Next.js server is starting before the application has been built. Try these specific solutions:
 
-4. **Check file permissions**:
+1. **Use the debug-start.js script (RECOMMENDED)**:
+   - In Azure Portal → Configuration → General Settings → Startup Command, use:
+   
+   ```bash
+   node debug-start.js
+   ```
+   
+   This script will:
+   - Perform detailed diagnostics of your deployment
+   - Automatically attempt to build the Next.js application
+   - Fix common permission issues
+   - Start the server with fallback mechanisms
+
+2. **Force the build in the startup command**:
+   - In Azure Portal → Configuration → General Settings → Startup Command, use:
+   
+   ```bash
+   bash -c "cd /home/site/wwwroot && npm run build && node server.js"
+   ```
+
+2. **Check GitHub Actions workflow**:
+   - Ensure your workflow includes a specific build step:
+   ```yaml
+   - name: Build Next.js app
+     run: npm run build
+   ```
+   - And that it uploads the `.next` directory as part of the artifact
+
+3. **Check the presence of .next directory**:
+   - Connect to the Kudu console (https://yourapp.scm.azurewebsites.net/DebugConsole)
+   - Navigate to `/home/site/wwwroot`
+   - Check if the `.next` directory exists and has content with `ls -la .next`
+
+4. **Verify startup command execution**:
+   - Add explicit logging to your startup command:
+   ```bash
+   bash -c "cd /home/site/wwwroot && echo 'PWD: $(pwd)' && echo 'Building...' && npm run build && echo 'Build completed' && node server.js"
+   ```
+   - Check logs to confirm each step is executing
+
+5. **Check file permissions**:
    - Ensure server.js and startup.sh are executable
    - Verify the application has write permissions to create the `.next` directory
+   - Run `chmod +x server.js startup.sh` in Kudu console if needed
 
 The recommended approach is to build during deployment (CI/CD) rather than at runtime for better performance and reliability.

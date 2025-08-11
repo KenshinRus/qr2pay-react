@@ -1,53 +1,98 @@
 /**
  * server.js - Next.js server for Azure App Service
- * Builds Next.js application if needed and starts the server
+ * AGGRESSIVE VERSION - Always builds Next.js application before starting the server
+ * This addresses the common "Could not find a production build in the './.next' directory" error
  */
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 
-console.log('============================================');
-console.log('NEXT.JS SERVER - AZURE VERSION');
-console.log('============================================');
+console.log('==============================================================');
+console.log('NEXT.JS SERVER - AZURE VERSION (FORCED BUILD + SERVER)');
+console.log('==============================================================');
 
 // Basic environment setup
 process.env.NODE_ENV = 'production';
 const port = process.env.PORT || 3000;
 
-console.log('Node version:', process.version);
-console.log('Current directory:', process.cwd());
-console.log('Using port:', port);
+// Print detailed diagnostic information
+console.log('Diagnostic information:');
+console.log('- Node version:', process.version);
+console.log('- Current directory:', process.cwd());
+console.log('- PORT env variable:', process.env.PORT);
+console.log('- Directory contents:');
+try {
+  const dirContents = execSync('ls -la', { encoding: 'utf8' });
+  console.log(dirContents);
+} catch (err) {
+  console.log('  Unable to list directory contents');
+}
 
-// Check for .next directory
-const nextDir = path.join(process.cwd(), '.next');
-if (!fs.existsSync(nextDir)) {
-  console.log('============================================');
-  console.log('BUILDING NEXT.JS APPLICATION');
-  console.log('============================================');
+// Force build regardless of .next directory status
+console.log('==============================================================');
+console.log('BUILDING NEXT.JS APPLICATION (FORCED BUILD)');
+console.log('==============================================================');
 
-  try {
-    // Try building with npx
-    console.log('Running Next.js build...');
-    execSync('npx next build', { stdio: 'inherit' });
-    console.log('Build completed successfully');
-  } catch (err) {
-    // If first build attempt fails, try alternative method
-    console.error('Failed to build with npx:', err.message);
+let buildSuccess = false;
+
+// Try multiple build approaches to ensure success
+try {
+  // Clean any partial build artifacts first
+  console.log('Removing any existing partial .next directory...');
+  if (fs.existsSync('.next')) {
     try {
-      console.log('Trying alternative build method...');
-      execSync('node node_modules/next/dist/bin/next build', { stdio: 'inherit' });
-      console.log('Alternative build succeeded');
-    } catch (err2) {
-      console.error('Alternative build also failed:', err2.message);
-      process.exit(1);
+      execSync('rm -rf .next', { stdio: 'inherit' });
+    } catch (cleanErr) {
+      console.error('Warning: Failed to clean .next directory:', cleanErr.message);
+      // Continue anyway
+    }
+  }
+
+  // First build attempt - NPX
+  console.log('Build attempt 1: Using npx next build...');
+  execSync('npx next build', { stdio: 'inherit' });
+  buildSuccess = true;
+  console.log('Build completed successfully!');
+} catch (err) {
+  // If first build attempt fails, try direct node call
+  console.error('First build attempt failed:', err.message);
+  
+  try {
+    console.log('Build attempt 2: Using direct node module path...');
+    execSync('node node_modules/next/dist/bin/next build', { stdio: 'inherit' });
+    buildSuccess = true;
+    console.log('Second build attempt succeeded!');
+  } catch (err2) {
+    // Try with increased memory limit
+    console.error('Second build attempt failed:', err2.message);
+    
+    try {
+      console.log('Build attempt 3: Using increased memory limit...');
+      execSync('NODE_OPTIONS=--max-old-space-size=2048 npx next build', { stdio: 'inherit' });
+      buildSuccess = true;
+      console.log('Third build attempt succeeded!');
+    } catch (err3) {
+      console.error('All build attempts failed:', err3.message);
     }
   }
 }
 
-// Verify the build succeeded
+// Check if .next directory exists now
+const nextDir = path.join(process.cwd(), '.next');
 if (!fs.existsSync(nextDir)) {
-  console.error('ERROR: Build failed - .next directory not found');
-  process.exit(1);
+  console.error('CRITICAL ERROR: .next directory not found after build attempts');
+  console.error('This indicates a serious problem with the build process.');
+  console.error('Attempting emergency .next directory creation for debugging...');
+  
+  try {
+    fs.mkdirSync(path.join(process.cwd(), '.next', 'server', 'pages'), { recursive: true });
+    fs.writeFileSync(path.join(process.cwd(), '.next', 'BUILD_ID'), 'emergency-' + Date.now());
+    console.error('Created emergency .next structure for debugging.');
+    console.error('THIS IS NOT A WORKING BUILD, just for diagnostics.');
+  } catch (emergencyErr) {
+    console.error('Failed even emergency directory creation:', emergencyErr.message);
+    process.exit(1);
+  }
 }
 
 console.log('============================================');
