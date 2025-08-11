@@ -1,5 +1,0 @@
-[config]
-command = bash .azure-setup.sh && deploy.cmd
-SCM_DO_BUILD_DURING_DEPLOYMENT=true
-PRE_BUILD_COMMAND=npm run build
-SCM_SCRIPT_GENERATOR_ARGS=--node
