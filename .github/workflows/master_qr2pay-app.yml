@@ -105,6 +105,12 @@ jobs:
         with:
           name: node-app
           
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Next.js app
+        run: npm run build
+
       - name: Verify deployment package
         run: |
           echo "Verifying deployment package contents..."
