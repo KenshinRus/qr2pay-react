@@ -25,15 +25,21 @@ jobs:
 
       - name: npm install, build, and test
         run: |
-          npm ci --include=dev
+          npm ci
           npm run build
-          ls -la .next/ || echo "No .next directory found"
+          echo "Listing .next directory after build:"
+          ls -la .next/
+          echo "Checking for BUILD_ID:"
+          ls -la .next/BUILD_ID || echo "BUILD_ID not found"
           
       - name: Verify build output
         run: |
           if [ ! -f ".next/BUILD_ID" ]; then
             echo "Build verification failed - no BUILD_ID found"
+            echo "Contents of .next directory:"
             ls -la .next/ || echo "No .next directory"
+            echo "Attempting to check build artifacts..."
+            find .next -name "*" -type f | head -10
             exit 1
           fi
           echo "Build verification passed"
@@ -42,7 +48,10 @@ jobs:
       - name: Clean up unnecessary files for deployment
         run: |
           # Remove dev dependencies to reduce package size, but keep build artifacts
-          echo "Current directory size:"
+          echo "Current directory size before cleanup:"
+          du -sh .
+          echo "Preserving build artifacts..."
+          ls -la .next/BUILD_ID || echo "WARNING: BUILD_ID missing before cleanup"
           du -sh .
           echo "Keeping build artifacts and production files only"
 
@@ -51,10 +60,22 @@ jobs:
         with:
           name: node-app
           path: |
-            .
-            !.git
-            !node_modules
-            .next
+            .next/
+            app/
+            components/
+            lib/
+            public/
+            utils/
+            package.json
+            package-lock.json
+            next.config.ts
+            next-env.d.ts
+            server.js
+            startup.js
+            tailwind.config.js
+            tsconfig.json
+            postcss.config.mjs
+            eslint.config.mjs
           retention-days: 1
 
   deploy:
@@ -75,11 +96,24 @@ jobs:
           echo "Verifying deployment package contents..."
           ls -la
           echo "Checking for .next directory..."
-          ls -la .next/ || echo "WARNING: .next directory not found in deployment package"
-          echo "Checking for BUILD_ID..."
-          cat .next/BUILD_ID || echo "WARNING: BUILD_ID not found"
+          if [ -d ".next" ]; then
+            echo "✅ .next directory found"
+            ls -la .next/
+            echo "Checking for BUILD_ID..."
+            if [ -f ".next/BUILD_ID" ]; then
+              echo "✅ BUILD_ID found: $(cat .next/BUILD_ID)"
+            else
+              echo "❌ BUILD_ID not found in deployment package"
+              echo "This will cause production startup to fail"
+              exit 1
+            fi
+          else
+            echo "❌ .next directory not found in deployment package"
+            exit 1
+          fi
           echo "Checking for package.json..."
           ls -la package.json || echo "WARNING: package.json not found"
+          echo "Deployment package verification complete"
       
       - name: Login to Azure
         uses: azure/login@v2
