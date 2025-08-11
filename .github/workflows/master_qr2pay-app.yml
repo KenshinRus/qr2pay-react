@@ -46,11 +46,20 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: |
+            .next
+            public
+            package.json
+            package-lock.json
+            next.config.ts
+            web.config
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
@@ -65,12 +74,14 @@ jobs:
         run: |
           echo "Current directory contents:"
           ls -la
-          echo "Components directory:"
-          ls -la components/ui || echo "components/ui not found"
-          echo "Lib directory:"
-          ls -la lib || echo "lib not found"
-          echo "Checking tsconfig.json paths:"
-          cat tsconfig.json
+          
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x'
+
+      - name: npm install
+        run: npm ci --omit=dev
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -86,4 +97,5 @@ jobs:
           app-name: 'qr2pay-app'
           slot-name: 'Production'
           package: .
+          skip-app-build: true
           
