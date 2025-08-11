@@ -1,3 +1,0 @@
-# Deny all requests
-Order deny,allow
-Deny from all

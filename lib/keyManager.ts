@@ -1,9 +1,3 @@
-import { DefaultAzureCredential } from '@azure/identity';
-import { SecretClient } from '@azure/keyvault-secrets';
-
-const vaultName = process.env.AZURE_KEY_VAULT_NAME;
-const secretName = process.env.SYMMETRIC_KEY_SECRET_NAME;
-
 let symmetricKey: Buffer | null = null;
 
 /**
@@ -18,21 +12,7 @@ export async function getSymmetricKey(): Promise<Buffer> {
         return symmetricKey;
     }
 
-    let keyBase64: string | undefined;
-
-    if (process.env.NODE_ENV === 'production') {
-        if (!vaultName || !secretName) {
-            throw new Error("Azure Key Vault environment variables are not set for production.");
-        }
-        const credential = new DefaultAzureCredential();
-        const vaultUrl = `https://${vaultName}.vault.azure.net`;
-        const client = new SecretClient(vaultUrl, credential);
-        const secret = await client.getSecret(secretName);
-        keyBase64 = secret.value;
-    } else {
-        // For local development, read from .env.local
-        keyBase64 = process.env.SYMMETRIC_KEY;
-    }
+    const keyBase64 = process.env.SYMMETRIC_KEY;
 
     if (!keyBase64) {
         throw new Error("Symmetric key could not be found.");

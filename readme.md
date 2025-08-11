@@ -4,25 +4,6 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-### Environment Configuration
-
-The application supports two environments for key management:
-
-1. **Local Development**: Keys are read from local files in the `res/` directory
-2. **Production (Azure)**: Keys are retrieved from Azure Key Vault
-
-To configure the environment:
-
-1. Copy `.env.example` to `.env.local`
-2. For Azure Key Vault integration:
-   - Set `NODE_ENV=production`
-   - Configure your Azure Key Vault details:
-   
-   ```env
-   AZURE_KEY_VAULT_NAME=your-key-vault-name
-   PRIVATE_KEY_SECRET_NAME=private-key
-   PUBLIC_KEY_SECRET_NAME=public-key
-   ```
 
 ### Running the Application
 
