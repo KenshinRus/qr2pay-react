@@ -55,11 +55,34 @@ jobs:
           du -sh .
           echo "Keeping build artifacts and production files only"
 
+      - name: Prepare artifact directory
+        run: |
+          echo "Creating artifact directory..."
+          mkdir -p ./artifact
+          echo "Copying all necessary files..."
+          cp -r .next ./artifact/
+          cp -r app ./artifact/
+          cp -r components ./artifact/
+          cp -r lib ./artifact/
+          cp -r public ./artifact/
+          cp -r utils ./artifact/
+          cp package*.json ./artifact/
+          cp *.js ./artifact/ || true
+          cp *.ts ./artifact/ || true
+          cp *.mjs ./artifact/ || true
+          cp *.md ./artifact/ || true
+          cp *.config.* ./artifact/ || true
+          cp *.sh ./artifact/ || true
+          cp web.config ./artifact/ || true
+          echo "Verifying .next directory in artifact..."
+          ls -la ./artifact/.next/BUILD_ID
+          echo "BUILD_ID content: $(cat ./artifact/.next/BUILD_ID)"
+          
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: ./artifact
           retention-days: 1
           
       - name: Debug - List what's being uploaded
