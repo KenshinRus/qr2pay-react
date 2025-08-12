@@ -22,6 +22,28 @@ export default function Create() {
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
 
+  const formatBankAccount = (value: string): string => {
+    // Remove all non-numeric characters
+    const numbers = value.replace(/\D/g, '');
+    
+    // Apply formatting based on length
+    if (numbers.length <= 2) {
+      return numbers;
+    } else if (numbers.length <= 6) {
+      return `${numbers.slice(0, 2)}-${numbers.slice(2)}`;
+    } else if (numbers.length <= 13) {
+      return `${numbers.slice(0, 2)}-${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    } else {
+      // For 14-15 digits (with 2-3 digit suffix)
+      return `${numbers.slice(0, 2)}-${numbers.slice(2, 6)}-${numbers.slice(6, 13)}-${numbers.slice(13, 16)}`;
+    }
+  };
+
+  const handleBankAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatBankAccount(e.target.value);
+    setBankAccount(formatted);
+  };
+
   const handleSubmit = async (formData: FormData) => {
     if (!headerTag.trim() || !bankAccount.trim() || !accountOwner.trim()) {
       setModalMessage("Please fill in all fields.");
@@ -98,9 +120,10 @@ export default function Create() {
           <Input
             id="bank_account"
             value={bankAccount}
-            onChange={(e) => setBankAccount(e.target.value)}
+            onChange={handleBankAccountChange}
             required
             placeholder="e.g., 02-1234-5678901-00"
+            maxLength={18} // XX-XXXX-XXXXXXX-XXX format
           />
         </div>
         <div>
