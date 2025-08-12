@@ -89,13 +89,13 @@ export default function ClientShare({ data64 }: { data64: string }) {
     const title = `QR Pay - ${details?.headerTag ?? 'Payment Details'}`;
     
     // Check if the browser supports the add to favorites functionality (legacy browsers)
-    if (typeof (window as any).external?.AddFavorite === 'function') {
+    if (typeof (window as typeof window & { external?: { AddFavorite?: (url: string, title: string) => void } }).external?.AddFavorite === 'function') {
       // Internet Explorer
-      (window as any).external.AddFavorite(url, title);
+      (window as typeof window & { external: { AddFavorite: (url: string, title: string) => void } }).external.AddFavorite(url, title);
       return;
-    } else if (typeof (window as any).sidebar?.addPanel === 'function') {
+    } else if (typeof (window as typeof window & { sidebar?: { addPanel?: (title: string, url: string, empty: string) => void } }).sidebar?.addPanel === 'function') {
       // Firefox (older versions)
-      (window as any).sidebar.addPanel(title, url, '');
+      (window as typeof window & { sidebar: { addPanel: (title: string, url: string, empty: string) => void } }).sidebar.addPanel(title, url, '');
       return;
     }
 
@@ -105,7 +105,7 @@ export default function ClientShare({ data64 }: { data64: string }) {
     const isAndroid = /Android/i.test(navigator.userAgent);
     
     let instructions = '';
-    let duration = 8000;
+    const duration = 8000;
 
     if (isMobile) {
       if (isIOS) {
