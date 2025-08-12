@@ -1,9 +1,7 @@
 let symmetricKey: Buffer | null = null;
 
 /**
- * Retrieves the symmetric encryption key.
- * In production, it fetches from Azure Key Vault.
- * In development, it reads from the SYMMETRIC_KEY environment variable.
+ * Retrieves the symmetric encryption key it reads from the SYMMETRIC_KEY environment variable.
  * The key is cached in memory after the first retrieval.
  * @returns A Buffer containing the 256-bit symmetric key.
  */

@@ -29,7 +29,8 @@ npm install
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
 # Symmetric encryption key used by the app
-# Use a strong, consistent key across environments
+# Powershell command to generate a key
+# [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)); 
 SYMMETRIC_KEY=replace-with-your-key
 
 # Gmail credentials for the contact form (Google App Passwords)
