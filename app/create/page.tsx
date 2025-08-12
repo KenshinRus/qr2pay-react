@@ -55,7 +55,7 @@ export default function Create() {
     const isValidBankAccount = validateNZBankAccount(bankAccount);
     if (!isValidBankAccount) {
       setModalMessage(
-        "Invalid New Zealand bank account number. Please enter in the format XX-XXXX-XXXXXXX-XX or XX-XXXX-XXXXXXX-XXX."
+        "Invalid New Zealand bank account number."
       );
       setShowModal(true);
       return;
