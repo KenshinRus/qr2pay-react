@@ -84,6 +84,71 @@ export default function ClientShare({ data64 }: { data64: string }) {
     });
   };
 
+  const handleAddToFavorites = () => {
+    const url = `${baseUrl}/view?data=${encodeURIComponent(data64)}`;
+    const title = `QR Pay - ${details?.headerTag ?? 'Payment Details'}`;
+    
+    // Check if the browser supports the add to favorites functionality (legacy browsers)
+    if (typeof (window as any).external?.AddFavorite === 'function') {
+      // Internet Explorer
+      (window as any).external.AddFavorite(url, title);
+      return;
+    } else if (typeof (window as any).sidebar?.addPanel === 'function') {
+      // Firefox (older versions)
+      (window as any).sidebar.addPanel(title, url, '');
+      return;
+    }
+
+    // Detect mobile vs desktop and provide appropriate instructions
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
+    let instructions = '';
+    let duration = 8000;
+
+    if (isMobile) {
+      if (isIOS) {
+        // iOS Safari/Chrome instructions
+        instructions = 'On iOS: Tap the Share button (square with arrow) at the bottom, then tap "Add to Bookmarks" or "Add to Favorites"';
+      } else if (isAndroid) {
+        // Android Chrome instructions
+        instructions = 'On Android: Tap the three dots menu (⋮) at the top right, then tap "Add to bookmarks" or the star icon';
+      } else {
+        // Generic mobile instructions
+        instructions = 'On mobile: Look for the menu button (usually three dots or lines) and select "Add to Bookmarks" or "Add to Favorites"';
+      }
+    } else {
+      // Desktop instructions
+      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const shortcut = isMac ? 'Cmd+D' : 'Ctrl+D';
+      instructions = `On desktop: Press ${shortcut} or click the star icon in the address bar to bookmark this page`;
+    }
+
+    // Copy URL to clipboard for easier bookmarking
+    navigator.clipboard.writeText(url).then(() => {
+      toast('Bookmark Instructions', {
+        description: `${instructions}. The page URL has been copied to your clipboard for easy access.`,
+        duration: duration,
+        style: {
+          background: 'rgb(217, 245, 139)',
+          border: '1px solid rgb(69, 68, 128)',
+          color: 'rgb(69, 68, 128)',
+        },
+      });
+    }).catch(() => {
+      toast('Bookmark Instructions', {
+        description: instructions,
+        duration: duration,
+        style: {
+          background: 'rgb(217, 245, 139)',
+          border: '1px solid rgb(69, 68, 128)',
+          color: 'rgb(69, 68, 128)',
+        },
+      });
+    });
+  };
+
   const [width, height] = qrSize.split('x').map(Number);
 
   return (
@@ -98,6 +163,7 @@ export default function ClientShare({ data64 }: { data64: string }) {
       <Button onClick={handleDownload} variant="default" className="w-full">Download QR code</Button>
       <Button onClick={handlePrint} variant="default" className="w-full">Print QR code</Button>
       <Button onClick={handleCopyLink} variant="default" className="w-full">Copy link to payment details</Button>
+      <Button onClick={handleAddToFavorites} variant="default" className="w-full">Add to Favorites</Button>
       <div className="space-y-2">
         <Label htmlFor="qrSize">Select size of QR code</Label>
         <Select onValueChange={handleResize} defaultValue={qrSize}>
