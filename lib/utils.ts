@@ -6,11 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getBaseUrl() {
-  // Use NEXT_PUBLIC_BASE_URL if defined, otherwise fall back to localhost in development
-  return process.env.NEXT_PUBLIC_BASE_URL;
-}
-
 export function showCopyToast(text: string, type: string) {
     navigator.clipboard.writeText(text);
     toast('Copied!', {

@@ -3,6 +3,9 @@ import ClientShare from '@/components/ClientShare'; // Client component for hand
 import { decrypt } from '@/lib/actions';
 import type { Metadata } from 'next';
 
+// Force dynamic rendering since we use searchParams
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({
   searchParams,
 }: {

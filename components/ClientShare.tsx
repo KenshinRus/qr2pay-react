@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,12 +16,11 @@ import { UserData } from '@/lib/types';
 import { decrypt } from '@/lib/actions';
 import { toast } from 'sonner';
 import { downloadQRCode } from '@/lib/downloadUtils';
-import { getBaseUrl } from '@/lib/utils';
 
 export default function ClientShare({ data64 }: { data64: string }) {
   const [qrSize, setQrSize] = useState('300x300');
   const [details, setDetails] = useState<UserData | null>(null);
-  const baseUrl = getBaseUrl();
+  const baseUrl = window.location.origin;
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${baseUrl}/view?data=${encodeURIComponent(data64)}`)}&size=${qrSize}`;
 

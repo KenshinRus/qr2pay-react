@@ -1,6 +1,9 @@
 // app/view/page.tsx (Server page)
 import ClientView from '@/components/ClientView';
 
+// Force dynamic rendering since we use searchParams
+export const dynamic = 'force-dynamic';
+
 export default async function View({
   searchParams,
 }: {
