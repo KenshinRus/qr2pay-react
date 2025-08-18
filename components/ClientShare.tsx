@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { UserData } from '@/lib/types';
 import { decrypt } from '@/lib/actions';
 import { toast } from 'sonner';
