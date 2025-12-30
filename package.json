@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.11.1",
+    "@clerk/nextjs": "^6.36.5",
     "@fnzc/nz-bank-account-validator": "^1.0.3",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -26,6 +27,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/nodemailer": "^6.4.17",
     "autoprefixer": "^10.4.20",
+    "better-sqlite3": "^12.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^20",
     "@types/react": "^19",

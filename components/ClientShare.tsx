@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -12,14 +13,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { UserData } from '@/lib/types';
 import { decrypt } from '@/lib/actions';
 import { toast } from 'sonner';
 import { downloadQRCode } from '@/lib/downloadUtils';
+import { useAuth } from '@clerk/nextjs';
 
 export default function ClientShare({ data64 }: { data64: string }) {
   const [qrSize, setQrSize] = useState('300x300');
   const [details, setDetails] = useState<UserData | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const { isSignedIn } = useAuth();
   const baseUrl = window.location.origin;
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${baseUrl}/view?data=${encodeURIComponent(data64)}`)}&size=${qrSize}`;
@@ -81,6 +97,61 @@ export default function ClientShare({ data64 }: { data64: string }) {
         color: 'rgb(69, 68, 128)',
       },
     });
+  };
+
+  const handleSaveQR = async () => {
+    if (!isSignedIn) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/qr/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          encryptedPayload: data64,
+          nickname: nickname || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsSaved(true);
+        setShowSaveDialog(false);
+        setNickname('');
+        toast('QR Code Saved!', {
+          description: 'Successfully saved to your collection.',
+          style: {
+            background: 'rgb(217, 245, 139)',
+            border: '1px solid rgb(69, 68, 128)',
+            color: 'rgb(69, 68, 128)',
+          },
+        });
+      } else {
+        toast('Error', {
+          description: data.error || 'Failed to save QR code.',
+          style: {
+            background: '#fee',
+            border: '1px solid #c33',
+            color: '#c33',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error saving QR code:', error);
+      toast('Error', {
+        description: 'An unexpected error occurred.',
+        style: {
+          background: '#fee',
+          border: '1px solid #c33',
+          color: '#c33',
+        },
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddToFavorites = () => {
@@ -163,6 +234,47 @@ export default function ClientShare({ data64 }: { data64: string }) {
       <Button onClick={handlePrint} variant="default" className="w-full">Print QR code</Button>
       <Button onClick={handleCopyLink} variant="default" className="w-full">Copy link to payment details</Button>
       <Button onClick={handleAddToFavorites} variant="default" className="w-full">Add to Favorites</Button>
+
+      {isSignedIn && !isSaved && (
+        <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+          <DialogTrigger asChild>
+            <Button variant="default" className="w-full">Save to My QR Codes</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Save QR Code</DialogTitle>
+              <DialogDescription>
+                Add a nickname to help you identify this QR code later (optional).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="nickname">Nickname (optional)</Label>
+                <Input
+                  id="nickname"
+                  placeholder="e.g., Rent Payment, Personal Account..."
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveQR} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {isSignedIn && isSaved && (
+        <Button disabled variant="outline" className="w-full">
+          ✓ Saved to My QR Codes
+        </Button>
+      )}
       <div className="space-y-2">
         <Label htmlFor="qrSize">Select size of QR code</Label>
         <Select onValueChange={handleResize} defaultValue={qrSize}>

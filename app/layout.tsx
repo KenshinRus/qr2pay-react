@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/header';
 import { Toaster } from 'sonner';
+import { ClerkProvider } from '@clerk/nextjs';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,11 +24,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Header />
-        <main className="container mx-auto p-3">
-          {children}
-        </main>
-        <Toaster />
+        <ClerkProvider>
+          <Header />
+          <main className="container mx-auto p-3">
+            {children}
+          </main>
+          <Toaster />
+        </ClerkProvider>
       </body>
     </html>
   );
