@@ -114,3 +114,19 @@ export function incrementViewCount(id: number, userId: string): boolean {
   const result = stmt.run(now, id, userId);
   return result.changes > 0;
 }
+
+/**
+ * Check if a QR code with the given encrypted payload already exists for a user
+ */
+export function checkQRCodeExists(userId: string, encryptedPayload: string): boolean {
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT COUNT(*) as count
+    FROM saved_qr_codes
+    WHERE user_id = ? AND encrypted_payload = ?
+  `);
+
+  const result = stmt.get(userId, encryptedPayload) as { count: number };
+  return result.count > 0;
+}

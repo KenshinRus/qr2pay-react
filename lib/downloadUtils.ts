@@ -42,8 +42,8 @@ export async function downloadQRCode(qrUrl: string, details: UserData | null, qr
   ctx.font = 'bold 24px Arial'; // Adjust font size/style';
   ctx.textAlign = 'center';
 
-  // "Please scan to pay"
-  ctx.fillText('Please scan to pay', canvas.width / 2, 30);
+  // "Please scan to transfer"
+  ctx.fillText('Please scan to transfer', canvas.width / 2, 30);
 
   // Header tag
   ctx.font = 'bold 20px Arial';

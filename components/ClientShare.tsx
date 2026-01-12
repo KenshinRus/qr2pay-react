@@ -44,9 +44,27 @@ export default function ClientShare({ data64 }: { data64: string }) {
     setDetails(await decrypt(data64));
   }, [data64]);
 
+  const checkIfSaved = useCallback(async () => {
+    if (!isSignedIn || !data64) return;
+
+    try {
+      const response = await fetch(`/api/qr/check?payload=${encodeURIComponent(data64)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setIsSaved(data.exists);
+      }
+    } catch (error) {
+      console.error('Error checking if QR code is saved:', error);
+    }
+  }, [data64, isSignedIn]);
+
   useEffect(() => {
     parseData();
   }, [parseData]);
+
+  useEffect(() => {
+    checkIfSaved();
+  }, [checkIfSaved]);
 
   const handleResize = (value: string) => {
     setQrSize(value);
@@ -70,7 +88,7 @@ export default function ClientShare({ data64 }: { data64: string }) {
           </style>
         </head>
         <body onload="window.print(); window.close();">
-          <h2>Please scan to pay</h2>
+          <h2>Please scan to transfer</h2>
           <h3>${details?.headerTag ?? 'NA'}</h3>
           <div class="account-details">
             <p><span class="account-label">Account number:</span> ${details?.bankAccount ?? 'NA'}</p>
