@@ -36,6 +36,7 @@ export function showCopyToast(text: string, type: string) {
           },
         });
       } catch (err) {
+        console.log('Fallback: Oops, unable to copy', err);
         toast('Copy failed', {
           description: 'Please use HTTPS or localhost to enable clipboard access.',
           style: {
