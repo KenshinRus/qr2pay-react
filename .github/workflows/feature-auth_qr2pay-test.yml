@@ -60,6 +60,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'qr2pay-test'
-          slot-name: 'Production'
+          slot-name: 'Test'
           package: .
           
