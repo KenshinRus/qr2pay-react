@@ -12,8 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment:
-      name: Test
+    environment: Test
     permissions:
       contents: read #This is required for actions/checkout
 
