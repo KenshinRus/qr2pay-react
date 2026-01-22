@@ -12,7 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: Test
     permissions:
       contents: read #This is required for actions/checkout
 
@@ -25,9 +24,6 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: |
           npm install
           npm run build --if-present
@@ -55,14 +51,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_298D8718D0F348508AE71865A2455498 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9A93AFF9B0E347EB98E1A02165180E97 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_32E991037DD94E79B1AF37AFB8FC0FA3 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_EE9C4E7BD4044ED39482EA6FD0924C86 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6704C8DBF5CA400B9399F40318056CA0 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B1B669EDA2874ED8AF2E92127B6237A2 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'qr2pay-test'
+          slot-name: 'Production'
           package: .
           
