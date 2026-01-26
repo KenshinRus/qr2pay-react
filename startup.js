@@ -1,15 +1,20 @@
-// startup.js - Azure App Service production startup
+// startup.js - Azure App Service startup (production and test environments)
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 QR2Pay Production Startup...');
-console.log('Working Directory:', process.cwd());
+const allowedEnvironments = ['production', 'test'];
+const nodeEnv = process.env.NODE_ENV || '';
 
-// Ensure we're running in production
-if (process.env.NODE_ENV !== 'production') {
-  console.error('❌ This startup script only supports production mode');
-  console.error('NODE_ENV must be set to "production"');
+console.log('🚀 QR2Pay Startup...');
+console.log('Working Directory:', process.cwd());
+console.log('NODE_ENV:', nodeEnv);
+
+// Ensure we're running in an allowed environment
+if (!allowedEnvironments.includes(nodeEnv.toLowerCase())) {
+  console.error('❌ This startup script only supports production and test environments');
+  console.error(`NODE_ENV must be one of: ${allowedEnvironments.join(', ')}`);
+  console.error(`Current NODE_ENV: "${nodeEnv}"`);
   process.exit(1);
 }
 
