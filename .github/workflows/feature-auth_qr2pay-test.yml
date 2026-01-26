@@ -59,9 +59,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6704C8DBF5CA400B9399F40318056CA0 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B1B669EDA2874ED8AF2E92127B6237A2 }}
 
-      - name: Set NODE_ENV for test environment
-        run: az webapp config appsettings set --name qr2pay-test --resource-group qr2pay_group --settings NODE_ENV=test
-
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
