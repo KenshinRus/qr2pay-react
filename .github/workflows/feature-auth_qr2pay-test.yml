@@ -62,6 +62,7 @@ jobs:
         with:
           name: built-app
           path: .
+          include-hidden-files: true
           retention-days: 1
 
   deploy:
