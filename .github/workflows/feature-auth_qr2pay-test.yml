@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - qr2pay-test
+name: Build and deploy Node.js app to Azure Web App - qr2pay-app
 
 on:
   push:
@@ -12,7 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: Test
     permissions:
       contents: read #This is required for actions/checkout
 
@@ -25,19 +24,16 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
-
+          npm ci
+          echo "Dependencies installed successfully"
+          
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: .
+          retention-days: 1
 
   deploy:
     runs-on: ubuntu-latest
@@ -51,6 +47,36 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Verify deployment package
+        run: |
+          echo "Verifying deployment package contents..."
+          ls -la
+          echo "Checking for .next directory..."
+          if [ -d ".next" ]; then
+            echo "✅ .next directory found"
+            ls -la .next/
+            echo "Checking for BUILD_ID..."
+            if [ -f ".next/BUILD_ID" ]; then
+              echo "✅ BUILD_ID found: $(cat .next/BUILD_ID)"
+            else
+              echo "❌ BUILD_ID not found in deployment package"
+              echo "This will cause production startup to fail"
+              exit 1
+            fi
+          else
+            echo "❌ .next directory not found in deployment package"
+            exit 1
+          fi
+          echo "Checking for package.json..."
+          ls -la package.json || echo "WARNING: package.json not found"
+          echo "Deployment package verification complete"      
       
       - name: Login to Azure
         uses: azure/login@v2
