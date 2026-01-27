@@ -10,8 +10,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
+    environment: Test
     permissions:
       contents: read #This is required for actions/checkout
 
@@ -23,39 +24,13 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install
-        run: |
-          npm ci
-          echo "Dependencies installed successfully"
-          
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: node-app
-          path: .
-          retention-days: 1
-
-  deploy:
-    runs-on: ubuntu-latest
-    environment: Test    
-    needs: build
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: node-app
-          
       - name: Install dependencies
         run: npm ci
 
       - name: Build Next.js app
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}      
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: npm run build
 
       - name: Verify deployment package
@@ -80,8 +55,54 @@ jobs:
           fi
           echo "Checking for package.json..."
           ls -la package.json || echo "WARNING: package.json not found"
-          echo "Deployment package verification complete"      
-      
+          echo "Deployment package verification complete"
+
+      - name: Upload built artifact for deploy job
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-app
+          path: .
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+    needs: build-test
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read
+
+    steps:
+      - name: Download built artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-app
+
+
+      - name: Verify deployment package
+        run: |
+          echo "Verifying deployment package contents..."
+          ls -la
+          echo "Checking for .next directory..."
+          if [ -d ".next" ]; then
+            echo "✅ .next directory found"
+            ls -la .next/
+            echo "Checking for BUILD_ID..."
+            if [ -f ".next/BUILD_ID" ]; then
+              echo "✅ BUILD_ID found: $(cat .next/BUILD_ID)"
+            else
+              echo "❌ BUILD_ID not found in deployment package"
+              echo "This will cause production startup to fail"
+              exit 1
+            fi
+          else
+            echo "❌ .next directory not found in deployment package"
+            exit 1
+          fi
+          echo "Checking for package.json..."
+          ls -la package.json || echo "WARNING: package.json not found"
+          echo "Deployment package verification complete"          
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
