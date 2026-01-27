@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test
+      - name: npm install
         run: |
           npm ci
           echo "Dependencies installed successfully"
@@ -37,6 +37,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    environment: Test    
     needs: build
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -52,6 +53,9 @@ jobs:
         run: npm ci
 
       - name: Build Next.js app
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}      
         run: npm run build
 
       - name: Verify deployment package
