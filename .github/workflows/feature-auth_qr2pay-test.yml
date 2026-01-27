@@ -67,7 +67,6 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    environment: Production
     needs: build-test
     permissions:
       id-token: write #This is required for requesting the JWT
