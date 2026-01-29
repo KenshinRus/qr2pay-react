@@ -110,6 +110,15 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6704C8DBF5CA400B9399F40318056CA0 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B1B669EDA2874ED8AF2E92127B6237A2 }}
 
+      - name: Disable Oryx build on Azure (app is pre-built in CI)
+        run: |
+          az webapp config appsettings set \
+            --resource-group qr2pay-v2 \
+            --name qr2pay-test \
+            --settings \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              ENABLE_ORYX_BUILD=false
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
