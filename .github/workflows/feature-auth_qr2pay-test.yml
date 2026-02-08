@@ -77,10 +77,20 @@ jobs:
           package: .
 
       - name: Set Azure App Settings
-        run: |
-          az webapp config appsettings set \
-            --name qr2pay-test \
-            --resource-group YOUR_RESOURCE_GROUP \
-            --settings CLERK_SECRET_KEY="${{ secrets.CLERK_SECRET_KEY }}" \
-                       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
-          
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: 'qr2pay-test'
+          slot-name: 'Production'
+          app-settings-json: |
+            [
+              {
+                "name": "CLERK_SECRET_KEY",
+                "value": "${{ secrets.CLERK_SECRET_KEY }}",                
+                "slotSetting": false
+              },
+              {
+                "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+                "value": "${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}",                
+                "slotSetting": false
+              }
+            ]
