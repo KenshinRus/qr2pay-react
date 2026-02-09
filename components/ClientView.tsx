@@ -21,37 +21,27 @@ export default function ClientView({ data64 }: { data64: string }) {
   const openASBApp = () => {
     if (!details) return;
 
-    // Try multiple deep link formats for Android
-    const deepLinks = [
-      // Just open the ASB app (since deep linking to transfer doesn't work)
-      `intent://#Intent;scheme=asb;package=nz.co.asb.asbmobile;end;`,
-      // Try launching via package
-  //`intent://open#Intent;package=nz.co.asb.asbmobile;end;`,
-      // Alternative custom scheme to just open app
-   //   `asb://open`,
-      // Fallback to ASB website
-   //   `https://www.asb.co.nz/banking-with-asb/mobile-banking.html`
-    ];
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
 
-    // Try each deep link
-    let attempted = 0;
-    const tryNextLink = () => {
-      if (attempted < deepLinks.length - 1) {
-        window.location.href = deepLinks[attempted];
-        attempted++;
-        setTimeout(() => {
-          // If still on page after 1.5s, app didn't open, try next
-          if (document.hasFocus()) {
-            tryNextLink();
-          }
-        }, 1500);
-      } else {
-        // Last fallback - open ASB website
-        window.open(deepLinks[deepLinks.length - 1], '_blank');
-      }
-    };
-
-    tryNextLink();
+    if (isAndroid) {
+      // Use MAIN/LAUNCHER intent to open the app's main activity directly.
+      // S.browser_fallback_url sends to Play Store only if the app is NOT installed.
+      window.location.href =
+        'intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=nz.co.asb.asbmobile;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dnz.co.asb.asbmobile;end;';
+    } else if (isIOS) {
+      // iOS: try the universal link, fall back to App Store after timeout
+      window.location.href = 'https://digital.asb.co.nz';
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          window.location.href = 'https://apps.apple.com/nz/app/asb-mobile-banking/id434348489';
+        }
+      }, 1500);
+    } else {
+      // Desktop fallback
+      window.open('https://www.asb.co.nz/banking-with-asb/mobile-banking.html', '_blank');
+    }
   };
 
   return (
